@@ -89,9 +89,11 @@
   </select>
 
   <button onclick="calculateAbsence()">คำนวณ</button>
+  <button onclick="downloadImage()">ดาวน์โหลดผลลัพธ์เป็นภาพ</button>
 
   <div id="result"></div>
 
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script>
     function calculateAbsence() {
       const startInput = document.getElementById("start").value;
@@ -108,14 +110,12 @@
 
       const start = new Date(startInput);
       const end = new Date(endInput);
-
       if (end <= start) {
         resultDiv.innerText = "วันที่ได้ตัวกลับต้องหลังจากวันที่ขาดราชการ";
         return;
       }
 
       const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
-
       let fullYears = 0;
       let yearCursor = new Date(start);
       while (true) {
@@ -124,21 +124,12 @@
         if (nextYear <= end) {
           fullYears++;
           yearCursor = nextYear;
-        } else {
-          break;
-        }
+        } else break;
       }
 
       const remainingDays = Math.floor((end - yearCursor) / (1000 * 60 * 60 * 24));
-      let months = 0, days = 0;
-
-      if (remainingDays >= 360 && remainingDays <= 364) {
-        months = 12;
-        days = 0;
-      } else {
-        months = Math.floor(remainingDays / 30);
-        days = remainingDays % 30;
-      }
+      let months = remainingDays >= 360 && remainingDays <= 364 ? 12 : Math.floor(remainingDays / 30);
+      let days = remainingDays >= 360 && remainingDays <= 364 ? 0 : remainingDays % 30;
 
       let isDesertion = false;
       if ((situation === 1 && totalDays >= 15) ||
@@ -149,13 +140,10 @@
 
       let penaltyText = "";
       if (!isDesertion) {
-        if (totalDays < 1) {
-          penaltyText = "ไม่ต้องรับโทษ (ขาดราชการน้อยกว่า 1 วัน)";
-        } else {
-          if (offenseCount === 1) penaltyText = "ทำทัณฑกรรมไม่เกิน 3 วัน";
-          else if (offenseCount === 2) penaltyText = `จำขังครึ่งหนึ่งของ ${totalDays} วัน`;
-          else penaltyText = `จำขังเท่ากับ ${totalDays} วัน`;
-        }
+        if (totalDays < 1) penaltyText = "ไม่ต้องรับโทษ (ขาดราชการน้อยกว่า 1 วัน)";
+        else if (offenseCount === 1) penaltyText = "ทำทัณฑกรรมไม่เกิน 3 วัน";
+        else if (offenseCount === 2) penaltyText = `จำขังครึ่งหนึ่งของ ${totalDays} วัน`;
+        else penaltyText = `จำขังเท่ากับ ${totalDays} วัน`;
       } else {
         if (situation === 1) {
           if (offenseCount === 1) penaltyText = `จำขัง 1/4 ของ ${totalDays} วัน`;
@@ -166,16 +154,16 @@
           if (totalDays > 30 || offenseCount >= 2) {
             penaltyText = "ส่งศาลทหาร (หนีราชการเกิน 30 วันหรือทำผิดซ้ำ)";
           } else {
-            let days = returnType === 1 ? totalDays : totalDays * 2;
-            penaltyText = `จำขัง ${days} วัน (${returnType === 1 ? "มอบตัวเอง" : "ถูกจับกุม"})`;
+            let d = returnType === 1 ? totalDays : totalDays * 2;
+            penaltyText = `จำขัง ${d} วัน (${returnType === 1 ? "มอบตัวเอง" : "ถูกจับกุม"})`;
           }
         }
       }
 
       const summary = `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน<br>` +
-  `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
-  `<span style='color:${isDesertion ? "red" : "orange"}'>ประเภทความผิด: ${isDesertion ? "หนีราชการ" : "ขาดราชการ"}</span><br>` +
-  `<span style='color:red'>ข้อเสนอแนะการลงโทษ: ${penaltyText}</span>`;
+        `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
+        `<span style='color:${isDesertion ? "red" : "orange"}'>ประเภทความผิด: ${isDesertion ? "หนีราชการ" : "ขาดราชการ"}</span><br>` +
+        `<span style='color:red'>ข้อเสนอแนะการลงโทษ: ${penaltyText}</span>`;
 
       const detail = `
 
@@ -191,10 +179,9 @@
 ` +
         `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน
 ` +
-        (remainingDays >= 360 && remainingDays <= 364 
-          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน
+        (remainingDays >= 360 && remainingDays <= 364 ? `6. ปัดเศษ 360–364 วัน = 12 เดือน
 `
-          : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
+         : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
 
       resultDiv.innerHTML = summary + detail;
 
@@ -204,17 +191,21 @@
         body: JSON.stringify({
           startDate: start.toISOString().split('T')[0],
           endDate: end.toISOString().split('T')[0],
-          totalDays,
-          years: fullYears,
-          months,
-          days,
-          situation,
-          returnType,
-          offenseCount,
-          isDesertion,
+          totalDays, years: fullYears, months, days,
+          situation, returnType, offenseCount, isDesertion,
           penalty: penaltyText
         })
       }).then(r => r.text()).then(console.log);
+    }
+
+    function downloadImage() {
+      const resultDiv = document.getElementById("result");
+      html2canvas(resultDiv).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "ผลคำนวณวันขาดราชการ.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
     }
   </script>
 </body>

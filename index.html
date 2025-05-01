@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>เครื่องคำนวณวันหนีราชการ</title>
   <style>
     body {
@@ -11,6 +11,10 @@
       margin: auto;
       padding: 20px;
       font-size: 18px;
+      background-color: #ffffff;
+    }
+    h2 {
+      text-align: center;
     }
     label, input, button {
       display: block;
@@ -18,47 +22,44 @@
       width: 100%;
       font-size: 18px;
     }
+    input, button {
+      padding: 10px;
+      box-sizing: border-box;
+    }
     #result {
       margin-top: 20px;
       background-color: #f0f0f0;
       padding: 20px;
       border-radius: 8px;
+      white-space: pre-wrap;
     }
-    #downloadBtn {
-      margin-top: 15px;
-      background-color: #4CAF50;
-      color: white;
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 18px;
-      cursor: pointer;
+    @media screen and (max-width: 480px) {
+      body { font-size: 16px; padding: 10px; }
+      h2 { font-size: 20px; }
+      label, input, button { font-size: 16px; }
     }
   </style>
 </head>
 <body>
   <h2>คำนวณวันหนีราชการ</h2>
   <label for="start">วันที่เริ่มขาดราชการ:</label>
-  <input type="date" id="start">
+  <input type="date" id="start" />
 
   <label for="end">วันที่ได้ตัวกลับ (ไม่นับวันนี้):</label>
-  <input type="date" id="end">
+  <input type="date" id="end" />
 
   <button onclick="calculateAbsence()">คำนวณ</button>
-  <button id="downloadBtn" onclick="downloadPDF()" style="display:none;">ดาวน์โหลดผลลัพธ์เป็น PDF</button>
 
   <div id="result"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     function calculateAbsence() {
-      const startInput = document.getElementById('start').value;
-      const endInput = document.getElementById('end').value;
-      const resultDiv = document.getElementById('result');
-      const downloadBtn = document.getElementById('downloadBtn');
+      const startInput = document.getElementById("start").value;
+      const endInput = document.getElementById("end").value;
+      const resultDiv = document.getElementById("result");
 
       if (!startInput || !endInput) {
-        resultDiv.innerText = 'โปรดกรอกวันที่ให้ครบถ้วน';
+        resultDiv.innerText = "กรุณาระบุวันที่ให้ถูกต้อง";
         return;
       }
 
@@ -66,53 +67,60 @@
       const end = new Date(endInput);
 
       if (end <= start) {
-        resultDiv.innerText = 'วันที่กลับต้องหลังจากวันที่เริ่มขาดราชการ';
+        resultDiv.innerText = "วันที่ได้ตัวกลับต้องหลังจากวันที่ขาดราชการ";
         return;
       }
 
-      const diffDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+      const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
 
-      let years = 0, months = 0, days = 0;
-
-      const prevDay = new Date(end.getTime() - 86400000);
-      const isFullYear = start.getDate() === prevDay.getDate() && start.getMonth() === prevDay.getMonth();
-
-      if (isFullYear) {
-        years = end.getFullYear() - start.getFullYear();
-        if (end.getMonth() < start.getMonth() || (end.getMonth() === start.getMonth() && end.getDate() <= start.getDate())) {
-          years--;
+      // คำนวณปีเต็มแบบสุริยคติ
+      let fullYears = 0;
+      let yearCursor = new Date(start);
+      while (true) {
+        const nextYear = new Date(yearCursor);
+        nextYear.setFullYear(nextYear.getFullYear() + 1);
+        if (nextYear <= end) {
+          fullYears++;
+          yearCursor = nextYear;
+        } else {
+          break;
         }
       }
 
-      let remainDays = diffDays - (years * 365);
+      const remainingDays = Math.floor((end - yearCursor) / (1000 * 60 * 60 * 24));
+      let months = 0, days = 0;
 
-      if (remainDays >= 360 && remainDays <= 364) {
+      if (remainingDays >= 360 && remainingDays <= 364) {
         months = 12;
         days = 0;
-      } else if (remainDays > 0) {
-        months = Math.floor(remainDays / 30);
-        days = remainDays % 30;
+      } else {
+        months = Math.floor(remainingDays / 30);
+        days = remainingDays % 30;
       }
 
-      const detail = `รายละเอียดการคำนวณ:<br>
-        - รวมจำนวนวันทั้งหมด: ${diffDays} วัน<br>
-        - หักปีเต็ม (${years} × 365 วัน) = ${years * 365} วัน<br>
-        - เหลือเศษวัน: ${remainDays} วัน<br>
-        - แปลงเศษวันเป็นเดือน (30 วัน/เดือน) = ${months} เดือน ${days} วัน`;
+      const summary = `ผลการคำนวณ:
+ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน
+`;
 
-      resultDiv.innerHTML = `<strong>ผลการคำนวณ:</strong><br>
-        ขาดราชการเป็นเวลา <strong>${years} ปี ${months} เดือน ${days} วัน</strong><br><br>${detail}`;
+      const detail = `
+ขั้นตอนการคำนวณ:
+` +
+        `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}
+` +
+        `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}
+` +
+        `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน
+` +
+        `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี
+` +
+        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน
+` +
+        (remainingDays >= 360 && remainingDays <= 364 
+          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน
+`
+          : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
 
-      downloadBtn.style.display = 'block';
-    }
-
-    function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const result = document.getElementById('result').innerText;
-      const lines = doc.splitTextToSize(result, 180);
-      doc.text(lines, 10, 20);
-      doc.save('ผลการคำนวณวันหนีราชการ.pdf');
+      resultDiv.innerText = summary + detail;
     }
   </script>
 </body>

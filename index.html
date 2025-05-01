@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>เครื่องคำนวณวันหนีราชการ</title>
+  <title>เครื่องคำนวณวันหนีราชการและโทษทัณฑ์</title>
   <style>
     body {
       font-family: 'Noto Sans Thai', sans-serif;
@@ -22,7 +22,7 @@
       font-weight: bold;
       color: #333;
     }
-    input, button {
+    input, select, button {
       display: block;
       margin-top: 10px;
       width: 100%;
@@ -61,12 +61,32 @@
   </style>
 </head>
 <body>
-  <h2>คำนวณวันหนีราชการ</h2>
+  <h2>คำนวณวันหนีราชการและโทษทัณฑ์</h2>
   <label for="start">วันที่เริ่มขาดราชการ:</label>
   <input type="date" id="start" />
 
   <label for="end">วันที่ได้ตัวกลับ (ไม่นับวันนี้):</label>
   <input type="date" id="end" />
+
+  <label for="situation">สถานการณ์:</label>
+  <select id="situation">
+    <option value="1">เวลาปกติ</option>
+    <option value="2">เวลาสงครามหรือกฎอัยการศึก</option>
+    <option value="3">ต่อหน้าราชศัตรู</option>
+  </select>
+
+  <label for="returnType">การกลับมารายงานตัว:</label>
+  <select id="returnType">
+    <option value="1">มอบตัวเอง</option>
+    <option value="2">ถูกจับกุม</option>
+  </select>
+
+  <label for="offenseCount">จำนวนครั้งที่เคยกระทำผิด:</label>
+  <select id="offenseCount">
+    <option value="1">ครั้งที่ 1</option>
+    <option value="2">ครั้งที่ 2</option>
+    <option value="3">ครั้งที่ 3 และครั้งต่อๆ ไป</option>
+  </select>
 
   <button onclick="calculateAbsence()">คำนวณ</button>
 
@@ -76,6 +96,9 @@
     function calculateAbsence() {
       const startInput = document.getElementById("start").value;
       const endInput = document.getElementById("end").value;
+      const situation = parseInt(document.getElementById("situation").value);
+      const returnType = parseInt(document.getElementById("returnType").value);
+      const offenseCount = parseInt(document.getElementById("offenseCount").value);
       const resultDiv = document.getElementById("result");
 
       if (!startInput || !endInput) {
@@ -117,11 +140,49 @@
         days = remainingDays % 30;
       }
 
+      let isDesertion = false;
+      if ((situation === 1 && totalDays >= 15) ||
+          (situation === 2 && totalDays >= 3) ||
+          (situation === 3 && totalDays >= 1)) {
+        isDesertion = true;
+      }
+
+      let penaltyText = "";
+      if (!isDesertion) {
+        if (totalDays < 1) {
+          penaltyText = "ไม่ต้องรับโทษ (ขาดราชการน้อยกว่า 1 วัน)";
+        } else {
+          if (offenseCount === 1) penaltyText = "ทำทัณฑกรรมไม่เกิน 3 วัน";
+          else if (offenseCount === 2) penaltyText = `จำขังครึ่งหนึ่งของ ${totalDays} วัน`;
+          else penaltyText = `จำขังเท่ากับ ${totalDays} วัน`;
+        }
+      } else {
+        if (situation === 1) {
+          if (offenseCount === 1) penaltyText = `จำขัง 1/4 ของ ${totalDays} วัน`;
+          else if (offenseCount === 2) penaltyText = `จำขังครึ่งหนึ่งของ ${totalDays} วัน`;
+          else penaltyText = `จำขังเท่ากับ ${totalDays} วัน`;
+          if (returnType === 2) penaltyText += " (เพิ่มโทษเป็น 2 เท่าเนื่องจากถูกจับกุม)";
+        } else {
+          if (totalDays > 30 || offenseCount >= 2) {
+            penaltyText = "ส่งศาลทหาร (หนีราชการเกิน 30 วันหรือทำผิดซ้ำ)";
+          } else {
+            let days = returnType === 1 ? totalDays : totalDays * 2;
+            penaltyText = `จำขัง ${days} วัน (${returnType === 1 ? "มอบตัวเอง" : "ถูกจับกุม"})`;
+          }
+        }
+      }
+
       const summary = `ผลการคำนวณ:
 ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน
-`;
+` +
+        `สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}
+` +
+        `ประเภทความผิด: ${isDesertion ? "หนีราชการ" : "ขาดราชการ"}
+` +
+        `ข้อเสนอแนะการลงโทษ: ${penaltyText}`;
 
       const detail = `
+
 ขั้นตอนการคำนวณ:
 ` +
         `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}
@@ -140,6 +201,25 @@
           : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
 
       resultDiv.innerText = summary + detail;
+
+      // ส่งข้อมูลไป Google Sheets
+      fetch("https://script.google.com/macros/s/AKfycbzTe5mnrwpUcFUOxrSzvZAsqQoWfrDMkKz3Y2emVVgQq3IKAfjw3U7zsUIjWJ7ieqP4WA/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0],
+          totalDays,
+          years: fullYears,
+          months,
+          days,
+          situation,
+          returnType,
+          offenseCount,
+          isDesertion,
+          penalty: penaltyText
+        })
+      }).then(r => r.text()).then(console.log);
     }
   </script>
 </body>

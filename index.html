@@ -77,8 +77,8 @@
 
   <label for="returnType">การกลับมารายงานตัว:</label>
   <select id="returnType">
-    <option value="1">มอบตัวเอง</option>
-    <option value="2">ถูกจับกุม</option>
+    <option value="1">กลับเอง</option>
+    <option value="2">ถูกจับตัวส่ง</option>
   </select>
 
   <label for="offenseCount">จำนวนครั้งที่เคยกระทำผิด:</label>
@@ -167,7 +167,7 @@
             penaltyText = "ส่งศาลทหาร (หนีราชการเกิน 30 วันหรือทำผิดซ้ำ)";
           } else {
             let days = returnType === 1 ? totalDays : totalDays * 2;
-            penaltyText = `จำขัง ${days} วัน (${returnType === 1 ? "มอบตัวเอง" : "ถูกจับกุม"})`;
+            penaltyText = `จำขัง ${days} วัน (${returnType === 1 ? "กลับเอง" : "ถูกจับตัวส่ง"})`;
           }
         }
       }

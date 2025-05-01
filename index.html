@@ -22,17 +22,17 @@
   <label>วันที่ถูกจับกุม/กลับหน่วย:</label>
   <input type="date" id="endDate"/>
 
-  <label>ประเภทความผิด:</label>
-  <select id="offenseType">
-    <option value="absent">ขาดราชการ</option>
-    <option value="desertion">หนีราชการ</option>
-  </select>
-
   <label>สถานการณ์:</label>
   <select id="situation">
     <option value="normal">เวลาปกติ</option>
     <option value="war">เวลาสงคราม / กฎอัยการศึก</option>
     <option value="enemy">ต่อหน้าราชศัตรู</option>
+  </select>
+
+  <label>ประเภทความผิด:</label>
+  <select id="offenseType">
+    <option value="absent">ขาดราชการ</option>
+    <option value="desertion">หนีราชการ</option>
   </select>
 
   <button onclick="calculateAbsence()">คำนวณ</button>

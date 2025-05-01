@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -73,7 +74,6 @@
 
       const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
 
-      // คำนวณปีเต็มแบบสุริยคติ
       let fullYears = 0;
       let yearCursor = new Date(start);
       while (true) {
@@ -98,29 +98,37 @@
         days = remainingDays % 30;
       }
 
-      const summary = `ผลการคำนวณ:
-ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน
-`;
+      const summary = `ผลการคำนวณ:\nขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน\n`;
 
-      const detail = `
-ขั้นตอนการคำนวณ:
-` +
-        `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}
-` +
-        `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}
-` +
-        `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน
-` +
-        `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี
-` +
-        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน
-` +
+      const detail = `\nขั้นตอนการคำนวณ:\n` +
+        `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}\n` +
+        `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}\n` +
+        `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน\n` +
+        `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี\n` +
+        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน\n` +
         (remainingDays >= 360 && remainingDays <= 364 
-          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน
-`
+          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน\n`
           : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
 
       resultDiv.innerText = summary + detail;
+
+      fetch("https://script.google.com/macros/s/AKfycby-GoJJgXxJWMQVCtunIFOm3EtHOoz6VDBMKc4sdwoJOqRRx5J5Sbs5w6TvC9Z6IUIl4w/exec", {
+        method: "POST",
+        body: JSON.stringify({
+          startDate: startInput,
+          endDate: endInput,
+          totalDays: totalDays,
+          years: fullYears,
+          months: months,
+          days: days
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+      .then(res => res.json())
+      .then(data => console.log("ส่งข้อมูลสำเร็จ:", data))
+      .catch(err => console.error("เกิดข้อผิดพลาดในการส่งข้อมูล:", err));
     }
   </script>
 </body>

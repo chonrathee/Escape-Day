@@ -172,14 +172,10 @@
         }
       }
 
-      const summary = `ผลการคำนวณ:
-ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน
-` +
-        `สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}
-` +
-        `ประเภทความผิด: ${isDesertion ? "หนีราชการ" : "ขาดราชการ"}
-` +
-        `ข้อเสนอแนะการลงโทษ: ${penaltyText}`;
+      const summary = `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน<br>` +
+  `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
+  `<span style='color:${isDesertion ? "red" : "orange"}'>ประเภทความผิด: ${isDesertion ? "หนีราชการ" : "ขาดราชการ"}</span><br>` +
+  `<span style='color:red'>ข้อเสนอแนะการลงโทษ: ${penaltyText}</span>`;
 
       const detail = `
 
@@ -200,9 +196,8 @@
 `
           : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
 
-      resultDiv.innerText = summary + detail;
+      resultDiv.innerHTML = summary + detail;
 
-      // ส่งข้อมูลไป Google Sheets
       fetch("https://script.google.com/macros/s/AKfycbzTe5mnrwpUcFUOxrSzvZAsqQoWfrDMkKz3Y2emVVgQq3IKAfjw3U7zsUIjWJ7ieqP4WA/exec", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

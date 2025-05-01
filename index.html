@@ -162,7 +162,7 @@
         }
       } else {
         if (situation === 1) {
-          if (offenseCount === 1) penaltyText = `จำขัง 1/4 ของ ${totalDays} วัน (${Math.ceil(totalDays / 4)} วัน)`;
+          if (offenseCount === 1) penaltyText = `จำขัง 1/4 ของ ${totalDays} วัน (หรือเท่ากับ ${Math.ceil(totalDays / 4)} วัน)`;
           else if (offenseCount === 2) penaltyText = `จำขังครึ่งหนึ่งของ ${totalDays} วัน`;
           else penaltyText = `จำขังเท่ากับ ${totalDays} วัน`;
           if (returnType === 2) penaltyText += " (เพิ่มโทษเป็น 2 เท่า เนื่องจากถูกจับตัวส่ง)";
@@ -171,7 +171,7 @@
             penaltyText = "ส่งศาลทหาร (หนีราชการเกิน 30 วันหรือทำผิดซ้ำ)";
           } else {
             let days = returnType === 1 ? totalDays : totalDays * 2;
-            penaltyText = `จำขัง ${days} วัน (${returnType === 1 ? "กลับเอง" : "ถูกจับตัวส่ง"})${returnType === 2 ? " (เพิ่มโทษเป็น 2 เท่า เนื่องจากถูกจับตัวส่ง)" : ""}`;
+            penaltyText = `จำขัง ${days} วัน (หรือเท่ากับ ${returnType === 1 ? "กลับเอง" : "ถูกจับตัวส่ง"})${returnType === 2 ? " (เพิ่มโทษเป็น 2 เท่า เนื่องจากถูกจับตัวส่ง)" : ""}`;
           }
         }
       }
@@ -179,7 +179,7 @@
       const summary = `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน<br>` +
   `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
   `<span style='color:${isDesertion ? "red" : "orange"}'>ประเภทความผิด: ${isDesertion ? "หนีราชการ" : "ขาดราชการ"}</span><br>` +
-  `<span style='color:red'>ข้อเสนอแนะการลงโทษ: ${penaltyText}</span>`;
+  `<span style='color:red'>ต้องรับทัณฑ์: ${penaltyText}</span>`;
 
       const detail = `
 

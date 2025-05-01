@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -12,27 +11,47 @@
       margin: auto;
       padding: 20px;
       font-size: 18px;
-      background-color: #ffffff;
+      background: linear-gradient(to right, #eef2f3, #ffffff);
     }
     h2 {
       text-align: center;
+      color: #1f4e79;
+      margin-bottom: 30px;
     }
-    label, input, button {
+    label {
+      font-weight: bold;
+      color: #333;
+    }
+    input, button {
       display: block;
       margin-top: 10px;
       width: 100%;
       font-size: 18px;
-    }
-    input, button {
       padding: 10px;
       box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #1f4e79;
+      color: white;
+      font-weight: bold;
+      border: none;
+      margin-top: 20px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #163a5f;
     }
     #result {
-      margin-top: 20px;
-      background-color: #f0f0f0;
+      margin-top: 30px;
+      background-color: #f4fbff;
       padding: 20px;
+      border-left: 6px solid #1f4e79;
       border-radius: 8px;
       white-space: pre-wrap;
+      color: #1a1a1a;
+      line-height: 1.6;
     }
     @media screen and (max-width: 480px) {
       body { font-size: 16px; padding: 10px; }
@@ -98,37 +117,29 @@
         days = remainingDays % 30;
       }
 
-      const summary = `ผลการคำนวณ:\nขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน\n`;
+      const summary = `ผลการคำนวณ:
+ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน
+`;
 
-      const detail = `\nขั้นตอนการคำนวณ:\n` +
-        `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}\n` +
-        `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}\n` +
-        `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน\n` +
-        `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี\n` +
-        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน\n` +
+      const detail = `
+ขั้นตอนการคำนวณ:
+` +
+        `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}
+` +
+        `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}
+` +
+        `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน
+` +
+        `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี
+` +
+        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน
+` +
         (remainingDays >= 360 && remainingDays <= 364 
-          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน\n`
+          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน
+`
           : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
 
       resultDiv.innerText = summary + detail;
-
-      fetch("https://script.google.com/macros/s/AKfycby-GoJJgXxJWMQVCtunIFOm3EtHOoz6VDBMKc4sdwoJOqRRx5J5Sbs5w6TvC9Z6IUIl4w/exec", {
-        method: "POST",
-        body: JSON.stringify({
-          startDate: startInput,
-          endDate: endInput,
-          totalDays: totalDays,
-          years: fullYears,
-          months: months,
-          days: days
-        }),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      })
-      .then(res => res.json())
-      .then(data => console.log("ส่งข้อมูลสำเร็จ:", data))
-      .catch(err => console.error("เกิดข้อผิดพลาดในการส่งข้อมูล:", err));
     }
   </script>
 </body>

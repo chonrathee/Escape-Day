@@ -1,23 +1,223 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ทดสอบการแสดงผล</title>
+  <title>เครื่องคำนวณวันหนีราชการและโทษทัณฑ์</title>
+  <style>
+    body {
+      font-family: 'Noto Sans Thai', sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      font-size: 18px;
+      background: linear-gradient(to right, #eef2f3, #ffffff);
+    }
+    h2 {
+      text-align: center;
+      color: #1f4e79;
+      margin-bottom: 30px;
+    }
+    label {
+      font-weight: bold;
+      color: #333;
+    }
+    input, select, button {
+      display: block;
+      margin-top: 10px;
+      width: 100%;
+      font-size: 18px;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #1f4e79;
+      color: white;
+      font-weight: bold;
+      border: none;
+      margin-top: 20px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background-color: #163a5f;
+    }
+    #result {
+      margin-top: 30px;
+      background-color: #f4fbff;
+      padding: 20px;
+      border-left: 6px solid #1f4e79;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    @media screen and (max-width: 480px) {
+      body { font-size: 16px; padding: 10px; }
+      h2 { font-size: 17px; }
+      label, input, button { font-size: 16px; }
+    }
+  </style>
 </head>
 <body>
   <div style="text-align: center; color: red; font-weight: bold; margin-bottom: 10px;">
     คำเตือน!! ใช้สำหรับฝึกหัดศึกษาเท่านั้น
   </div>
+  <h2 style="line-height: 1.6; text-align: center; font-size: 17px; color: #1f4e79; margin-bottom: 30px;">
+      การคำนวณวันหนีราชการของทหาร<br>
+      ตามระเบียบ กห. ว่าด้วยการคำนวณวันหนีราชการของทหาร พ.ศ. 2497<br>
+      และข้อบังคับ กห. ว่าด้วยการลงทัณฑ์ทหารขาดหนีราชการ พ.ศ. 2528
+    </h2>
+  <label for="start">วันที่เริ่มขาดราชการ:</label>
+  <input type="date" id="start" />
 
-  <!-- ผลลัพธ์อื่น ๆ แสดงที่นี่ -->
+  <label for="end">วันที่ได้ตัวกลับ (ไม่นับวันนี้):</label>
+  <input type="date" id="end" />
+
+  <label for="situation">สถานการณ์:</label>
+  <select id="situation">
+    <option value="1">เวลาปกติ</option>
+    <option value="2">เวลาสงครามหรือกฎอัยการศึก</option>
+    <option value="3">ต่อหน้าราชศัตรู</option>
+  </select>
+
+  <label for="returnType">การกลับมารายงานตัว:</label>
+  <select id="returnType">
+    <option value="1">กลับเอง</option>
+    <option value="2">ถูกจับตัวส่ง</option>
+  </select>
+
+  <label for="offenseCount">จำนวนครั้งที่เคยกระทำผิด:</label>
+  <select id="offenseCount">
+    <option value="1">ครั้งที่ 1</option>
+    <option value="2">ครั้งที่ 2</option>
+    <option value="3">ครั้งที่ 3 และครั้งต่อๆ ไป</option>
+  </select>
+
+  <button onclick="calculateAbsence()">คำนวณ</button>
+
+  <div id="result"></div>
+
+  <script>
+    function calculateAbsence() {
+      const startInput = document.getElementById("start").value;
+      const endInput = document.getElementById("end").value;
+      const situation = parseInt(document.getElementById("situation").value);
+      const returnType = parseInt(document.getElementById("returnType").value);
+      const offenseCount = parseInt(document.getElementById("offenseCount").value);
+      const resultDiv = document.getElementById("result");
+
+      if (!startInput || !endInput) {
+        resultDiv.innerText = "กรุณาระบุวันที่ให้ถูกต้อง";
+        return;
+      }
+
+      const start = new Date(startInput);
+      const end = new Date(endInput);
+
+      if (end <= start) {
+        resultDiv.innerText = "วันที่ได้ตัวกลับต้องหลังจากวันที่ขาดราชการ";
+        return;
+      }
+
+      const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+
+      let fullYears = 0;
+      let yearCursor = new Date(start);
+      while (true) {
+        const nextYear = new Date(yearCursor);
+        nextYear.setFullYear(nextYear.getFullYear() + 1);
+        if (nextYear <= end) {
+          fullYears++;
+          yearCursor = nextYear;
+        } else {
+          break;
+        }
+      }
+
+      const remainingDays = Math.floor((end - yearCursor) / (1000 * 60 * 60 * 24));
+      let months = 0, days = 0;
+
+      if (remainingDays >= 360 && remainingDays <= 364) {
+        months = 12;
+        days = 0;
+      } else {
+        months = Math.floor(remainingDays / 30);
+        days = remainingDays % 30;
+      }
+
+      let isDesertion = false;
+      if ((situation === 1 && totalDays >= 15) ||
+          (situation === 2 && totalDays >= 3) ||
+          (situation === 3 && totalDays >= 1)) {
+        isDesertion = true;
+      }
+
+      let penaltyText = "";
+      if (!isDesertion) {
+        if (totalDays < 1) {
+          penaltyText = "ไม่ต้องรับโทษ (ขาดราชการน้อยกว่า 1 วัน)";
+        } else {
+          if (offenseCount === 1) penaltyText = "ทำทัณฑกรรมไม่เกิน 3 วัน";
+          else if (offenseCount === 2) penaltyText = `จำขังครึ่งหนึ่งของ ${totalDays} วัน`;
+          else penaltyText = `จำขังเท่ากับ ${totalDays} วัน`;
+        }
+      } else {
+        if (situation === 1) {
+          if (offenseCount === 1) penaltyText = `จำขัง 1/4 ของ ${totalDays} วัน (หรือเท่ากับ ${Math.ceil(totalDays / 4)} วัน)`;
+          else if (offenseCount === 2) penaltyText = `จำขังครึ่งหนึ่งของ ${totalDays} วัน`;
+          else penaltyText = `จำขังเท่ากับ ${totalDays} วัน`;
+          if (returnType === 2) penaltyText += " (เพิ่มโทษเป็น 2 เท่า เนื่องจากถูกจับตัวส่ง)";
+        } else {
+          if (totalDays > 30 || offenseCount >= 2) {
+            penaltyText = "ส่งศาลทหาร (หนีราชการเกิน 30 วันหรือทำผิดซ้ำ)";
+          } else {
+            let days = returnType === 1 ? totalDays : totalDays * 2;
+            penaltyText = `จำขัง ${days} วัน (หรือเท่ากับ ${returnType === 1 ? "กลับเอง" : "ถูกจับตัวส่ง"})${returnType === 2 ? " (เพิ่มโทษเป็น 2 เท่า เนื่องจากถูกจับตัวส่ง)" : ""}`;
+          }
+        }
+      }
+
+      const summary = `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน<br>` +
+  `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
+  `<span style='color:${isDesertion ? "red" : "orange"}'>ประเภทความผิด: ${isDesertion ? "หนีราชการ" : "ขาดราชการ"}</span><br>` +
+  `<span style='color:red'>ต้องรับทัณฑ์: ${penaltyText}</span>`;
+
+      const detail = `
+
+ขั้นตอนการคำนวณ:
+` +
+        `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}
+` +
+        `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}
+` +
+        `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน
+` +
+        `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี
+` +
+        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน
+` +
+        (remainingDays >= 360 && remainingDays <= 364 
+          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน
+`
+          : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
+
+      resultDiv.innerHTML = summary + detail;
+    }
+  </script>
+
+  <div style="position: fixed; bottom: 10px; left: 10px; font-size: 14px; color: #1E90FF;">
+    พัฒนาโดย พันจ่าเอก ชลระธี เจริญทรัพย์ กรมข่าวทหารเรือ (มิ.ย.68)
+  </div>
 
   <div style="text-align: center; color: red; font-weight: bold; margin-top: 30px;">
     คำเตือน!! ใช้สำหรับฝึกหัดศึกษาเท่านั้น
   </div>
-  <div style="position: fixed; bottom: 10px; left: 10px; font-size: 7px; color: #1E90FF;">
-    พัฒนาโดย พันจ่าเอก ชลระธี เจริญทรัพย์ กรมข่าวทหารเรือ (รุ่นทดลอง มิ.ย.68)
+  <div style="position: fixed; bottom: 10px; left: 10px; font-size: 14px; color: #1E90FF;">
+    พัฒนาโดย พันจ่าเอก ชลระธี เจริญทรัพย์ กรมข่าวทหารเรือ (มิ.ย.68)
   </div>
 </body>
+
+
 </html>

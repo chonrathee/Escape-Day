@@ -158,16 +158,16 @@
         }
       } else {
         if (situation === 1) {
-          if (offenseCount === 1) penaltyText = `จำขัง 1/4 ของ ${totalDays} วัน`;
+          if (offenseCount === 1) penaltyText = `จำขัง 1/4 ของ ${totalDays} วัน (${Math.ceil(totalDays / 4)} วัน)`;
           else if (offenseCount === 2) penaltyText = `จำขังครึ่งหนึ่งของ ${totalDays} วัน`;
           else penaltyText = `จำขังเท่ากับ ${totalDays} วัน`;
-          if (returnType === 2) penaltyText += " (เพิ่มโทษเป็น 2 เท่าเนื่องจากถูกจับกุม)";
+          if (returnType === 2) penaltyText += " (เพิ่มโทษเป็น 2 เท่า เนื่องจากถูกจับตัวส่ง)";
         } else {
           if (totalDays > 30 || offenseCount >= 2) {
             penaltyText = "ส่งศาลทหาร (หนีราชการเกิน 30 วันหรือทำผิดซ้ำ)";
           } else {
             let days = returnType === 1 ? totalDays : totalDays * 2;
-            penaltyText = `จำขัง ${days} วัน (${returnType === 1 ? "กลับเอง" : "ถูกจับตัวส่ง"})`;
+            penaltyText = `จำขัง ${days} วัน (${returnType === 1 ? "กลับเอง" : "ถูกจับตัวส่ง"})${returnType === 2 ? " (เพิ่มโทษเป็น 2 เท่า เนื่องจากถูกจับตัวส่ง)" : ""}`;
           }
         }
       }

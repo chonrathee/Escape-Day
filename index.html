@@ -1,5 +1,44 @@
 <!DOCTYPE html>
 <html lang="th">
-<!-- Placeholder for version before image download button -->
-<!-- The real HTML logic would go here. For now, only a placeholder is shown. -->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>คำนวณวันหนีราชการ</title>
+  <style>
+    body { font-family: 'Noto Sans Thai', sans-serif; max-width: 700px; margin: auto; padding: 20px; font-size: 18px; }
+    label, select, input, button { margin-top: 10px; width: 100%; font-size: 18px; }
+    #result { margin-top: 20px; background-color: #f0f0f0; padding: 20px; border-radius: 8px; }
+    .red { color: red; }
+    .orange { color: orange; }
+    .green { color: green; }
+  </style>
+</head>
+<body>
+  <h2>คำนวณวันหนีราชการ</h2>
+
+  <label>วันที่เริ่มขาดราชการ:</label>
+  <input type="date" id="startDate"/>
+
+  <label>วันที่ถูกจับกุม/กลับหน่วย:</label>
+  <input type="date" id="endDate"/>
+
+  <label>ประเภทความผิด:</label>
+  <select id="offenseType">
+    <option value="absent">ขาดราชการ</option>
+    <option value="desertion">หนีราชการ</option>
+  </select>
+
+  <label>สถานการณ์:</label>
+  <select id="situation">
+    <option value="normal">เวลาปกติ</option>
+    <option value="war">เวลาสงคราม / กฎอัยการศึก</option>
+    <option value="enemy">ต่อหน้าราชศัตรู</option>
+  </select>
+
+  <button onclick="calculateAbsence()">คำนวณ</button>
+
+  <div id="result"></div>
+
+  <script src="script.js"></script>
+</body>
 </html>

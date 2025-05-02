@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -103,6 +102,46 @@
   <div id="result"></div>
 
   <script>
+    
+    function determineOffenseType(totalDays, situationCode) {
+      if (situationCode === 3 && totalDays >= 1) return "หนีราชการ";
+      if (situationCode === 2 && totalDays >= 3) return "หนีราชการ";
+      if (situationCode === 1 && totalDays >= 15) return "หนีราชการ";
+      return "ขาดราชการ";
+    }
+
+    function calculatePenalty(offenseType, situationCode, offenseCount, totalDays, isCaught) {
+      const doublePenalty = isCaught ? 2 : 1;
+
+      if (offenseType === "หนีราชการ") {
+        if (situationCode === 1) {
+          if (offenseCount === 1) return `จำขัง ${Math.ceil(totalDays * 0.25 * doublePenalty)} วัน`;
+          if (offenseCount === 2) return `จำขัง ${Math.round(totalDays * 0.5 * doublePenalty)} วัน`;
+          return `จำขัง ${totalDays * doublePenalty} วัน`;
+        } else {
+          if (offenseCount === 1 && totalDays <= 30) return `จำขัง ${totalDays * doublePenalty} วัน`;
+          return "ส่งฟ้องศาล";
+        }
+      }
+
+      if (offenseType === "ขาดราชการ") {
+        if (situationCode === 1) {
+          if (totalDays < 1) return "ไม่ต้องลงโทษ (ขาดราชการไม่ถึง 1 วัน)";
+          if (offenseCount === 1) return "ทำทัณฑ์กรรมไม่เกิน 3 วัน";
+          if (offenseCount === 2) return `จำขัง ${Math.round(totalDays * 0.5 * doublePenalty)} วัน`;
+          return `จำขัง ${totalDays * doublePenalty} วัน`;
+        } else {
+          if (offenseCount === 1) return `จำขัง ${totalDays} วัน`;
+          if (offenseCount === 2) return `จำขัง ${totalDays * 2} วัน`;
+          return `จำขังอย่างน้อย ${totalDays * 2} วัน (พิจารณาตามความเหมาะสม)`;
+        }
+      }
+
+      return "ไม่สามารถคำนวณได้";
+    }
+
+
+    
     function calculateAbsence() {
       const start = new Date(document.getElementById("start").value);
       const end = new Date(document.getElementById("end").value);
@@ -115,6 +154,48 @@
         resultDiv.innerHTML = "กรุณากรอกวันที่ให้ถูกต้อง";
         return;
       }
+
+      const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+
+      let fullYears = 0;
+      let yearCursor = new Date(start);
+      while (true) {
+        const nextYear = new Date(yearCursor);
+        nextYear.setFullYear(nextYear.getFullYear() + 1);
+        if (nextYear <= end) {
+          fullYears++;
+          yearCursor = nextYear;
+        } else break;
+      }
+
+      const remainingDays = Math.floor((end - yearCursor) / (1000 * 60 * 60 * 24));
+      let months = 0, days = 0;
+      if (remainingDays >= 360 && remainingDays <= 364) {
+        months = 12; days = 0;
+      } else {
+        months = Math.floor(remainingDays / 30);
+        days = remainingDays % 30;
+      }
+
+      let offenseType = determineOffenseType(totalDays, situation);
+      let penaltyText = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
+
+      resultDiv.innerHTML = 
+        `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน<br>` +
+        `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
+        `<span style='color:${offenseType === "หนีราชการ" ? "red" : "orange"}'>ประเภทความผิด: ${offenseType}</span><br>` +
+        `<span style='color:red'>ต้องรับทัณฑ์: ${penaltyText}</span><br><br>` +
+        `ขั้นตอนการคำนวณ:<br>` +
+        `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}<br>` +
+        `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}<br>` +
+        `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน<br>` +
+        `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี<br>` +
+        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน<br>` +
+        (remainingDays >= 360 && remainingDays <= 364 
+          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน<br>`
+          : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
+    }
+
 
       const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
 

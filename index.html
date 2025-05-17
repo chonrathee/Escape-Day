@@ -166,7 +166,18 @@
       const days = remainingDays % 30;
 
       const offenseType = determineOffenseType(totalDays, situation);
-      const penaltyText = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
+      const penaltyTextBase = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
+
+      let penaltyText = penaltyTextBase;
+      if (offenseType === "หนีราชการ" && situation === 1) {
+        if (offenseCount === 1) {
+          penaltyText += "<br><span style='color:blue'>(ครั้งที่ 1 จำขัง 1 ใน 4 ของจำนวนวันที่ขาดราชการ)</span>";
+        } else if (offenseCount === 2) {
+          penaltyText += "<br><span style='color:blue'>(ครั้งที่ 2 จำขังกึ่งหนึ่งของจำนวนวันที่ขาดราชการ)</span>";
+        } else if (offenseCount >= 3) {
+          penaltyText += "<br><span style='color:blue'>(ครั้งที่ 3 ขึ้นไป จำขังเท่ากับจำนวนวันที่ขาดราชการ)</span>";
+        }
+      }
 
       let displayText = "";
       if (remainingDays >= 360 && remainingDays <= 364) {

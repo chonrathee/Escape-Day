@@ -1,3 +1,8 @@
+from pathlib import Path
+from zipfile import ZipFile
+
+# Updated HTML content based on user's requirements
+html_code = '''
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -162,19 +167,21 @@
       }
 
       const remainingDays = Math.floor((end - yearCursor) / (1000 * 60 * 60 * 24));
-      let months = 0, days = 0;
+      let months = Math.floor(remainingDays / 30);
+      let days = remainingDays % 30;
+
+      const offenseType = determineOffenseType(totalDays, situation);
+      const penaltyText = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
+
+      let remainderText = '';
       if (remainingDays >= 360 && remainingDays <= 364) {
-        months = 12; days = 0;
+        remainderText = `${remainingDays} วัน<br><strong style="color:blue;">คำนวณได้ ${totalDays} วัน ให้ถือเอา ${fullYears} ปี ${remainingDays} วัน สำหรับการคำนวณทัณฑ์</strong>`;
       } else {
-        months = Math.floor(remainingDays / 30);
-        days = remainingDays % 30;
+        remainderText = `${months} เดือน ${days} วัน`;
       }
 
-      let offenseType = determineOffenseType(totalDays, situation);
-      let penaltyText = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
-
       resultDiv.innerHTML = 
-        `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน<br>` +
+        `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${remainderText}<br>` +
         `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
         `<span style='color:${offenseType === "หนีราชการ" ? "red" : "orange"}'>ประเภทความผิด: ${offenseType}</span><br>` +
         `<span style='color:red'>ต้องรับทัณฑ์: ${penaltyText}</span><br><br>` +
@@ -183,10 +190,7 @@
         `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}<br>` +
         `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน<br>` +
         `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี<br>` +
-        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน<br>` +
-        (remainingDays >= 360 && remainingDays <= 364 
-          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน<br>`
-          : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
+        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน`;
     }
   </script>
 
@@ -199,3 +203,9 @@
   </div>
 </body>
 </html>
+'''
+
+# Save file
+output_path = Path("/mnt/data/index_custom_absence.html")
+output_path.write_text(html_code.strip(), encoding="utf-8")
+output_path

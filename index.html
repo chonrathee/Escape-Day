@@ -1,7 +1,7 @@
 from pathlib import Path
 from zipfile import ZipFile
 
-# Updated HTML content based on user's requirements
+# HTML code with corrected logic for displaying "1 ปี 363 วัน ให้ถือเอา 1 ปี 360 วัน"
 html_code = '''
 <!DOCTYPE html>
 <html lang="th">
@@ -167,21 +167,21 @@ html_code = '''
       }
 
       const remainingDays = Math.floor((end - yearCursor) / (1000 * 60 * 60 * 24));
-      let months = Math.floor(remainingDays / 30);
-      let days = remainingDays % 30;
+      const months = Math.floor(remainingDays / 30);
+      const days = remainingDays % 30;
 
       const offenseType = determineOffenseType(totalDays, situation);
       const penaltyText = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
 
-      let remainderText = '';
+      let displayText = "";
       if (remainingDays >= 360 && remainingDays <= 364) {
-        remainderText = `${remainingDays} วัน<br><strong style="color:blue;">คำนวณได้ ${totalDays} วัน ให้ถือเอา ${fullYears} ปี ${remainingDays} วัน สำหรับการคำนวณทัณฑ์</strong>`;
+        displayText = `${fullYears} ปี ${remainingDays} วัน<br><strong style="color:blue;">ให้ถือเอา ${fullYears} ปี 360 วัน สำหรับการคำนวณทัณฑ์</strong>`;
       } else {
-        remainderText = `${months} เดือน ${days} วัน`;
+        displayText = `${fullYears} ปี ${months} เดือน ${days} วัน`;
       }
 
       resultDiv.innerHTML = 
-        `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${remainderText}<br>` +
+        `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${displayText}<br>` +
         `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
         `<span style='color:${offenseType === "หนีราชการ" ? "red" : "orange"}'>ประเภทความผิด: ${offenseType}</span><br>` +
         `<span style='color:red'>ต้องรับทัณฑ์: ${penaltyText}</span><br><br>` +
@@ -205,7 +205,14 @@ html_code = '''
 </html>
 '''
 
-# Save file
-output_path = Path("/mnt/data/index_custom_absence.html")
-output_path.write_text(html_code.strip(), encoding="utf-8")
-output_path
+# Save the HTML to file and zip it
+project_folder = Path("/mnt/data/absence_final")
+project_folder.mkdir(exist_ok=True)
+html_file = project_folder / "index.html"
+html_file.write_text(html_code.strip(), encoding="utf-8")
+
+zip_file = Path("/mnt/data/absence_final.zip")
+with ZipFile(zip_file, "w") as zipf:
+    zipf.write(html_file, arcname="index.html")
+
+zip_file

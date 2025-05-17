@@ -1,201 +1,135 @@
-<!DOCTYPE html>
+from zipfile import ZipFile
+import os
+
+# เตรียมโครงสร้างโฟลเดอร์
+base_dir = "/mnt/data/military_absence_calc"
+os.makedirs(base_dir, exist_ok=True)
+
+# สร้างไฟล์ index.html
+html_content = """<!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>การคำนวณวันหนีราชการของทหาร</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คำนวณวันหนีราชการ</title>
   <style>
     body {
       font-family: 'Noto Sans Thai', sans-serif;
-      max-width: 600px;
-      margin: auto;
-      padding: 20px;
-      font-size: 18px;
-      background: linear-gradient(to right, #eef2f3, #ffffff);
-    }
-    h2 {
-      text-align: center;
-      color: #1f4e79;
-      font-size: 17px;
-      margin-bottom: 30px;
-      line-height: 1.6;
-    }
-    label {
-      font-weight: bold;
+      padding: 2rem;
+      background: #f8f9fa;
       color: #333;
     }
-    input, select, button {
+    h1 {
+      text-align: center;
+    }
+    label, input, button {
+      font-size: 1.2rem;
       display: block;
-      margin-top: 10px;
+      margin: 1rem auto;
+      max-width: 400px;
       width: 100%;
-      font-size: 18px;
-      padding: 10px;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    button {
-      background-color: #1f4e79;
-      color: white;
-      font-weight: bold;
-      border: none;
-      margin-top: 20px;
-    }
-    button:hover {
-      background-color: #163a5f;
     }
     #result {
-      margin-top: 30px;
-      background-color: #f4fbff;
-      padding: 20px;
-      border-left: 6px solid #1f4e79;
-      border-radius: 8px;
-      white-space: pre-wrap;
-      color: #1a1a1a;
-      line-height: 1.6;
+      margin-top: 2rem;
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      font-size: 1.2rem;
     }
-    @media screen and (max-width: 480px) {
-      body { font-size: 16px; padding: 10px; }
-      h2 { font-size: 14px; }
-      label, input, button { font-size: 16px; }
+    .btn-download {
+      margin-top: 1rem;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div style="text-align: center; color: red; font-weight: bold; margin-bottom: 10px;">
-    คำเตือน!! ใช้สำหรับฝึกหัดศึกษาเท่านั้น
-  </div>
-
-  <h2>
-    การคำนวณวันหนีราชการของทหาร<br>
-    ตามระเบียบ กห. ว่าด้วยการคำนวณวันหนีราชการของทหาร พ.ศ.2497<br>
-    และข้อบังคับ กห. ว่าด้วยการลงทัณฑ์ทหารขาดหนีราชการ พ.ศ.2528
-  </h2>
-
+  <h1>ระบบคำนวณวันหนีราชการ</h1>
   <label for="start">วันที่เริ่มขาดราชการ:</label>
-  <input type="date" id="start" />
+  <input type="date" id="start">
 
-  <label for="end">วันที่ได้ตัวกลับ (ไม่นับวันนี้):</label>
-  <input type="date" id="end" />
+  <label for="end">วันที่ถูกจับ / กลับเข้าหน่วย:</label>
+  <input type="date" id="end">
 
-  <label for="situation">สถานการณ์:</label>
-  <select id="situation">
-    <option value="1">เวลาปกติ</option>
-    <option value="2">เวลาสงครามหรือกฎอัยการศึก</option>
-    <option value="3">ต่อหน้าราชศัตรู</option>
-  </select>
+  <button onclick="calculate()">คำนวณ</button>
 
-  <label for="returnType">การกลับมารายงานตัว:</label>
-  <select id="returnType">
-    <option value="1">กลับเอง</option>
-    <option value="2">ถูกจับตัวส่ง</option>
-  </select>
-
-  <label for="offenseCount">จำนวนครั้งที่เคยกระทำผิด:</label>
-  <select id="offenseCount">
-    <option value="1">ครั้งที่ 1</option>
-    <option value="2">ครั้งที่ 2</option>
-    <option value="3">ครั้งที่ 3 และครั้งต่อๆ ไป</option>
-  </select>
-
-  <button onclick="calculateAbsence()">คำนวณ</button>
   <div id="result"></div>
+  <button class="btn-download" onclick="downloadPDF()">ดาวน์โหลด PDF</button>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
-    function determineOffenseType(totalDays, situationCode) {
-      if (situationCode === 3 && totalDays >= 1) return "หนีราชการ";
-      if (situationCode === 2 && totalDays >= 3) return "หนีราชการ";
-      if (situationCode === 1 && totalDays >= 15) return "หนีราชการ";
-      return "ขาดราชการ";
-    }
-
-    function calculatePenalty(offenseType, situationCode, offenseCount, totalDays, isCaught) {
-      const doublePenalty = isCaught ? 2 : 1;
-      if (offenseType === "หนีราชการ") {
-        if (situationCode === 1) {
-          if (offenseCount === 1) return `จำขัง ${Math.ceil(totalDays * 0.25 * doublePenalty)} วัน`;
-          if (offenseCount === 2) return `จำขัง ${Math.round(totalDays * 0.5 * doublePenalty)} วัน`;
-          return `จำขัง ${totalDays * doublePenalty} วัน`;
-        } else {
-          if (offenseCount === 1 && totalDays <= 30) return `จำขัง ${totalDays * doublePenalty} วัน`;
-          return "ส่งฟ้องศาล";
-        }
-      }
-      if (offenseType === "ขาดราชการ") {
-        if (situationCode === 1) {
-          if (totalDays < 1) return "ไม่ต้องลงโทษ (ขาดราชการไม่ถึง 1 วัน)";
-          if (offenseCount === 1) return "ทำทัณฑ์กรรมไม่เกิน 3 วัน";
-          if (offenseCount === 2) return `จำขัง ${Math.round(totalDays * 0.5 * doublePenalty)} วัน`;
-          return `จำขัง ${totalDays * doublePenalty} วัน`;
-        } else {
-          if (offenseCount === 1) return `จำขัง ${totalDays} วัน`;
-          if (offenseCount === 2) return `จำขัง ${totalDays * 2} วัน`;
-          return `จำขังอย่างน้อย ${totalDays * 2} วัน (พิจารณาตามความเหมาะสม)`;
-        }
-      }
-      return "ไม่สามารถคำนวณได้";
-    }
-
-    function calculateAbsence() {
-      const start = new Date(document.getElementById("start").value);
-      const end = new Date(document.getElementById("end").value);
-      const situation = parseInt(document.getElementById("situation").value);
-      const returnType = parseInt(document.getElementById("returnType").value);
-      const offenseCount = parseInt(document.getElementById("offenseCount").value);
-      const resultDiv = document.getElementById("result");
+    function calculate() {
+      const start = new Date(document.getElementById('start').value);
+      const end = new Date(document.getElementById('end').value);
 
       if (!start || !end || end <= start) {
-        resultDiv.innerHTML = "กรุณากรอกวันที่ให้ถูกต้อง";
+        document.getElementById('result').innerHTML = '<b>กรุณากรอกวันที่ให้ถูกต้อง</b>';
         return;
       }
 
-      const totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+      let resultText = '<b>รายละเอียดการคำนวณ:</b><br>';
+      const startStr = start.toLocaleDateString('th-TH');
+      const endStr = end.toLocaleDateString('th-TH');
+
+      resultText += `เริ่มขาดราชการ: ${startStr}<br>กลับเข้าหน่วย: ${endStr}<br>`;
+
       let fullYears = 0;
-      let yearCursor = new Date(start);
-      while (true) {
-        const nextYear = new Date(yearCursor);
-        nextYear.setFullYear(nextYear.getFullYear() + 1);
+      let check = new Date(start);
+      while (check <= end) {
+        let nextYear = new Date(check);
+        nextYear.setFullYear(check.getFullYear() + 1);
         if (nextYear <= end) {
           fullYears++;
-          yearCursor = nextYear;
-        } else break;
+          check = nextYear;
+        } else {
+          break;
+        }
       }
 
-      const remainingDays = Math.floor((end - yearCursor) / (1000 * 60 * 60 * 24));
+      let remainingDays = Math.floor((end - check) / (1000 * 60 * 60 * 24));
+      remainingDays -= 1;
+
       let months = 0, days = 0;
       if (remainingDays >= 360 && remainingDays <= 364) {
-        months = 12; days = 0;
+        fullYears++;
       } else {
         months = Math.floor(remainingDays / 30);
         days = remainingDays % 30;
       }
 
-      let offenseType = determineOffenseType(totalDays, situation);
-      let penaltyText = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
+      resultText += `<br><b>ผลลัพธ์:</b><br>`;
+      resultText += `รวมหนีราชการ: ${fullYears} ปี ${months} เดือน ${days} วัน`;
+      resultText += `<br><br><i>*นับปีเฉพาะรอบสุริยคติ / 30 วัน = 1 เดือน*</i>`;
+      document.getElementById('result').innerHTML = resultText;
+    }
 
-      resultDiv.innerHTML = 
-        `ผลการคำนวณ:<br>ขาดราชการเป็นเวลา ${fullYears} ปี ${months} เดือน ${days} วัน<br>` +
-        `<span style='color:${situation === 1 ? "green" : situation === 2 ? "orange" : "red"}'>สถานการณ์: ${situation === 1 ? "เวลาปกติ" : situation === 2 ? "เวลาสงครามหรือกฎอัยการศึก" : "ต่อหน้าราชศัตรู"}</span><br>` +
-        `<span style='color:${offenseType === "หนีราชการ" ? "red" : "orange"}'>ประเภทความผิด: ${offenseType}</span><br>` +
-        `<span style='color:red'>ต้องรับทัณฑ์: ${penaltyText}</span><br><br>` +
-        `ขั้นตอนการคำนวณ:<br>` +
-        `1. วันที่เริ่มขาดราชการ: ${start.toLocaleDateString('th-TH')}<br>` +
-        `2. วันที่ได้ตัวกลับ: ${end.toLocaleDateString('th-TH')}<br>` +
-        `3. จำนวนวันทั้งหมดที่ขาดราชการ: ${totalDays} วัน<br>` +
-        `4. ตรวจสอบปีเต็มจากวัน/เดือนเดียวกัน: ${fullYears} ปี<br>` +
-        `5. คำนวณวันคงเหลือหลังหักปีเต็ม: ${remainingDays} วัน<br>` +
-        (remainingDays >= 360 && remainingDays <= 364 
-          ? `6. ปัดเศษ 360–364 วัน = 12 เดือน<br>`
-          : `6. แปลงเศษวันเป็นเดือน (30 วัน/เดือน): ${months} เดือน ${days} วัน`);
+    function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const resultHTML = document.getElementById('result').innerHTML;
+      const temp = document.createElement('div');
+      temp.innerHTML = resultHTML;
+      const text = temp.innerText;
+      doc.text(text, 10, 10);
+      doc.save('ผลการคำนวณวันหนีราชการ.pdf');
     }
   </script>
-
-  <div style="text-align: center; color: red; font-weight: bold; margin-top: 30px;">
-    คำเตือน!! ใช้สำหรับฝึกหัดศึกษาเท่านั้น
-  </div>
-
-  <div style="position: fixed; bottom: 10px; left: 10px; font-size: 7pt; color: #1E90FF;">
-    พัฒนาโดย พันจ่าเอก ชลระธี เจริญทรัพย์ กรมข่าวทหารเรือ (รุ่นทดลอง มิ.ย.68)
-  </div>
 </body>
 </html>
+"""
+
+html_path = os.path.join(base_dir, "index.html")
+with open(html_path, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+# สร้าง ZIP
+zip_path = "/mnt/data/military_absence_calc.zip"
+with ZipFile(zip_path, "w") as zipf:
+    zipf.write(html_path, arcname="index.html")
+
+zip_path

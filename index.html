@@ -166,9 +166,7 @@
       const days = remainingDays % 30;
 
       const offenseType = determineOffenseType(totalDays, situation);
-      const penaltyTextBase = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
-      let penaltyText = penaltyTextBase;
-      
+      const penaltyText = calculatePenalty(offenseType, situation, offenseCount, totalDays, returnType === 2);
 
       let displayText = "";
       if (remainingDays >= 360 && remainingDays <= 364) {

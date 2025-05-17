@@ -1,135 +1,210 @@
 from zipfile import ZipFile
 import os
 
-# เตรียมโครงสร้างโฟลเดอร์
-base_dir = "/mnt/data/military_absence_calc"
-os.makedirs(base_dir, exist_ok=True)
-
-# สร้างไฟล์ index.html
-html_content = """<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>คำนวณวันหนีราชการ</title>
-  <style>
-    body {
-      font-family: 'Noto Sans Thai', sans-serif;
-      padding: 2rem;
-      background: #f8f9fa;
-      color: #333;
-    }
-    h1 {
-      text-align: center;
-    }
-    label, input, button {
-      font-size: 1.2rem;
-      display: block;
-      margin: 1rem auto;
-      max-width: 400px;
-      width: 100%;
-    }
-    #result {
-      margin-top: 2rem;
-      background: #fff;
-      padding: 1.5rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      font-size: 1.2rem;
-    }
-    .btn-download {
-      margin-top: 1rem;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <h1>ระบบคำนวณวันหนีราชการ</h1>
-  <label for="start">วันที่เริ่มขาดราชการ:</label>
-  <input type="date" id="start">
-
-  <label for="end">วันที่ถูกจับ / กลับเข้าหน่วย:</label>
-  <input type="date" id="end">
-
-  <button onclick="calculate()">คำนวณ</button>
-
-  <div id="result"></div>
-  <button class="btn-download" onclick="downloadPDF()">ดาวน์โหลด PDF</button>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script>
-    function calculate() {
-      const start = new Date(document.getElementById('start').value);
-      const end = new Date(document.getElementById('end').value);
-
-      if (!start || !end || end <= start) {
-        document.getElementById('result').innerHTML = '<b>กรุณากรอกวันที่ให้ถูกต้อง</b>';
-        return;
-      }
-
-      let resultText = '<b>รายละเอียดการคำนวณ:</b><br>';
-      const startStr = start.toLocaleDateString('th-TH');
-      const endStr = end.toLocaleDateString('th-TH');
-
-      resultText += `เริ่มขาดราชการ: ${startStr}<br>กลับเข้าหน่วย: ${endStr}<br>`;
-
-      let fullYears = 0;
-      let check = new Date(start);
-      while (check <= end) {
-        let nextYear = new Date(check);
-        nextYear.setFullYear(check.getFullYear() + 1);
-        if (nextYear <= end) {
-          fullYears++;
-          check = nextYear;
-        } else {
-          break;
-        }
-      }
-
-      let remainingDays = Math.floor((end - check) / (1000 * 60 * 60 * 24));
-      remainingDays -= 1;
-
-      let months = 0, days = 0;
-      if (remainingDays >= 360 && remainingDays <= 364) {
-        fullYears++;
-      } else {
-        months = Math.floor(remainingDays / 30);
-        days = remainingDays % 30;
-      }
-
-      resultText += `<br><b>ผลลัพธ์:</b><br>`;
-      resultText += `รวมหนีราชการ: ${fullYears} ปี ${months} เดือน ${days} วัน`;
-      resultText += `<br><br><i>*นับปีเฉพาะรอบสุริยคติ / 30 วัน = 1 เดือน*</i>`;
-      document.getElementById('result').innerHTML = resultText;
-    }
-
-    function downloadPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const resultHTML = document.getElementById('result').innerHTML;
-      const temp = document.createElement('div');
-      temp.innerHTML = resultHTML;
-      const text = temp.innerText;
-      doc.text(text, 10, 10);
-      doc.save('ผลการคำนวณวันหนีราชการ.pdf');
-    }
-  </script>
-</body>
+# สร้างไฟล์ form.html ซึ่งเป็นหน้า HTML หลักของ Web App
+form_html = """
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: 'Noto Sans Thai', sans-serif; padding: 20px; background: #f9f9f9; }
+      input, select { padding: 10px; margin: 5px 0; width: 100%; }
+      button { padding: 10px 15px; background: #2196F3; color: white; border: none; border-radius: 5px; }
+      .result { margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 10px; }
+    </style>
+  </head>
+  <body>
+    <h2>🧮 คำนวณวันขาดราชการ</h2>
+    <form id="absenceForm">
+      <label>📅 วันที่เริ่มขาดราชการ:</label><br>
+      <input type="date" name="startDate" required><br>
+      <label>📅 วันที่กลับ/ถูกจับกลับ:</label><br>
+      <input type="date" name="endDate" required><br>
+      <label>🚩 สถานการณ์:</label>
+      <select name="situation">
+        <option value="normal">เวลาปกติ</option>
+        <option value="non-normal">เวลาไม่ปกติ</option>
+        <option value="enemy">ต่อหน้าราชศัตรู</option>
+      </select>
+      <label>🔁 ลักษณะการกลับ:</label>
+      <select name="returnType">
+        <option value="return_self">กลับเอง</option>
+        <option value="return_captured">ถูกจับกลับ</option>
+      </select>
+      <label>🔢 จำนวนครั้ง:</label><br>
+      <input type="number" name="caseNumber" min="1" max="10" required><br><br>
+      <button type="submit">คำนวณ</button>
+    </form>
+    <div id="result" class="result"></div>
+    <script>
+      document.getElementById("absenceForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(this).entries());
+        fetch("/exec", {
+          method: "POST",
+          body: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" }
+        })
+        .then(res => res.text())
+        .then(html => document.getElementById("result").innerHTML = html)
+        .catch(err => alert("เกิดข้อผิดพลาด: " + err));
+      });
+    </script>
+  </body>
 </html>
 """
 
-html_path = os.path.join(base_dir, "index.html")
-with open(html_path, "w", encoding="utf-8") as f:
-    f.write(html_content)
+# สร้างไฟล์ code.gs ซึ่งเป็นสคริปต์หลักของ Apps Script
+code_gs = """
+const SHEET_NAME = "Sheet1";
+const SPREADSHEET_ID = "1kEG7k_eDvB24acN0u8PkG8J-3gz2gm5s4BVcI3UiIeM";
 
-# สร้าง ZIP
-zip_path = "/mnt/data/military_absence_calc.zip"
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('form');
+}
+
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  return HtmlService.createHtmlOutput(submitData(data));
+}
+
+function calculateAbsenceDaysGov(startDateStr, endDateStr) {
+  const start = new Date(startDateStr);
+  const endOriginal = new Date(endDateStr);
+  const end = new Date(endOriginal);
+  end.setDate(end.getDate() - 1);
+
+  start.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+
+  let totalDays = 0;
+  let calcDetail = [];
+
+  const thaiMonths = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+
+  let firstMonthEnd = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  let daysFirstMonth = (firstMonthEnd - start) / (1000 * 3600 * 24) + 1;
+  totalDays += daysFirstMonth;
+  calcDetail.push(`เดือนแรก (${thaiMonths[start.getMonth()]} ${start.getFullYear()}) = ${Math.floor(daysFirstMonth)} วัน`);
+
+  let next = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+  while (next <= end) {
+    let y = next.getFullYear();
+    let m = next.getMonth();
+
+    let endOfThisMonth = new Date(y, m + 1, 0);
+    if (end < endOfThisMonth) {
+      let remaining = (end - next) / (1000 * 3600 * 24) + 1;
+      totalDays += remaining;
+      calcDetail.push(`เดือนสุดท้าย (${thaiMonths[m]} ${y}) = ${Math.floor(remaining)} วัน`);
+      break;
+    } else {
+      totalDays += 30;
+      calcDetail.push(`เดือน ${thaiMonths[m]} ${y} = 30 วัน`);
+      next = new Date(y, m + 1, 1);
+    }
+  }
+
+  return {
+    totalDays: Math.floor(totalDays),
+    detail: calcDetail
+  };
+}
+
+function submitData(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+
+  const startDate = new Date(data.startDate);
+  const endDate = new Date(data.endDate);
+  const situation = data.situation;
+  const returnType = data.returnType;
+  const caseNumber = parseInt(data.caseNumber, 10);
+
+  const result = calculateAbsenceDaysGov(startDate, endDate);
+  const daysAbsent = result.totalDays;
+  const breakdown = result.detail;
+
+  let punishment = "";
+
+  if (situation === "enemy") {
+    punishment = "โทษสูงสุด: ประหารชีวิต (หนีราชการต่อหน้าราชศัตรู)";
+  } else {
+    const multiplier = returnType === "return_captured" ? 2 : 1;
+
+    if (situation === "normal") {
+      if (caseNumber === 1) {
+        punishment = `จำขัง ${Math.ceil(daysAbsent * 0.25 * multiplier)} วัน (ครั้งที่ 1)`;
+      } else if (caseNumber === 2) {
+        punishment = `จำขัง ${Math.ceil(daysAbsent * 0.5 * multiplier)} วัน (ครั้งที่ 2)`;
+      } else {
+        punishment = `จำขัง ${daysAbsent * multiplier} วัน (ครั้งที่ 3+)`;
+      }
+    } else if (situation === "non-normal") {
+      if (caseNumber === 1 && daysAbsent <= 30) {
+        punishment = `จำขัง ${daysAbsent * multiplier} วัน (เวลาไม่ปกติ ครั้งที่ 1)`;
+      } else if ((caseNumber === 1 && daysAbsent > 30) || caseNumber === 2) {
+        punishment = `ส่งฟ้องศาล (หนีราชการในเวลาไม่ปกติเกิน 30 วันหรือครั้งที่ 2)`;
+      } else {
+        punishment = `ส่งฟ้องศาล (ครั้งที่ 3 หรือเจตนาหลีกเลี่ยงราชการ)`;
+      }
+    }
+  }
+
+  const years = Math.floor(daysAbsent / 365);
+  const monthCount = Math.floor((daysAbsent % 365) / 30);
+  const days = daysAbsent - (years * 365 + monthCount * 30);
+
+  const explanation = `
+  <p><u>📘 วิธีคำนวณวันขาดราชการแบบราชการ:</u><br>
+  - เดือนแรก: นับจากวันเริ่มถึงสิ้นเดือนจริง<br>
+  - เดือนต่อๆ ไป: นับเดือนละ 30 วัน<br>
+  - เดือนสุดท้าย: นับเฉพาะวันที่เหลือก่อนวันกลับ<br><br>
+  <strong>รายละเอียด:</strong><br>
+  ${breakdown.map(line => `- ${line}`).join("<br>")}
+  <br><br>
+  ✅ รวมทั้งสิ้น: <strong>${daysAbsent} วัน</strong> ≈ ${years} ปี ${monthCount} เดือน ${days} วัน
+  </p>`;
+
+  sheet.appendRow([
+    data.startDate,
+    data.endDate,
+    daysAbsent,
+    situation,
+    returnType,
+    caseNumber,
+    punishment
+  ]);
+
+  return `
+    <div style="padding: 15px; border-radius: 10px; background-color: #f0f0f0;">
+      <h3>✅ <strong>ผลการคำนวณ</strong></h3>
+      <p><strong>ขาดราชการ:</strong> ${daysAbsent} วัน (${years} ปี ${monthCount} เดือน ${days} วัน)</p>
+      <p><strong>สถานการณ์:</strong> ${situation === "normal" ? "เวลาปกติ" : situation === "non-normal" ? "เวลาไม่ปกติ" : "ต่อหน้าราชศัตรู"}</p>
+      <p><strong>ลักษณะการกลับ:</strong> ${returnType === "return_self" ? "กลับเอง" : "ถูกจับกลับ"}</p>
+      <p><strong>ครั้งที่:</strong> ${caseNumber}</p>
+      <p><strong>โทษ:</strong> ${punishment}</p>
+      ${explanation}
+    </div>
+  `;
+}
+"""
+
+# เขียนไฟล์ทั้งหมดลงโฟลเดอร์
+os.makedirs("/mnt/data/absence_gov_app", exist_ok=True)
+with open("/mnt/data/absence_gov_app/form.html", "w", encoding="utf-8") as f:
+    f.write(form_html.strip())
+
+with open("/mnt/data/absence_gov_app/code.gs", "w", encoding="utf-8") as f:
+    f.write(code_gs.strip())
+
+# สร้าง ZIP ไฟล์
+zip_path = "/mnt/data/absence_gov_app.zip"
 with ZipFile(zip_path, "w") as zipf:
-    zipf.write(html_path, arcname="index.html")
+    zipf.write("/mnt/data/absence_gov_app/form.html", arcname="form.html")
+    zipf.write("/mnt/data/absence_gov_app/code.gs", arcname="code.gs")
 
 zip_path
